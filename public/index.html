@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>URL Shortener</title>
+
+<style>
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f4f6f8;
+    margin: 0;
+    padding: 0;
+}
+
+/* Container */
+.container {
+    max-width: 700px;
+    margin: 60px auto;
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+/* Title */
+h1 {
+    text-align: center;
+}
+
+/* Input */
+.input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+input {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+button {
+    padding: 12px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #007bff;
+    color: white;
+    font-weight: bold;
+}
+
+button:hover {
+    background: #0056b3;
+}
+
+/* Cards */
+.card {
+    border: 1px solid #eee;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    background: #fafafa;
+}
+
+.actions {
+    margin-top: 10px;
+}
+
+.actions button {
+    margin-right: 8px;
+    background: #28a745;
+}
+
+.actions button.delete {
+    background: #dc3545;
+}
+
+/* Toast */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #333;
+    color: white;
+    padding: 12px 18px;
+    border-radius: 8px;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+.toast.show {
+    opacity: 1;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>🔗 URL Shortener</h1>
+
+    <div class="input-group">
+        <input id="urlInput" placeholder="Enter your URL (https://...)">
+        <button onclick="shorten()">Shorten</button>
+    </div>
+
+    <div id="result"></div>
+</div>
+
+<div id="toast" class="toast">Copied!</div>
+
+<script>
+async function shorten() {
+    const url = document.getElementById("urlInput").value;
+
+    if (!url.startsWith("http")) {
+        showToast("Enter valid URL!");
+        return;
+    }
+
+    await fetch("/shorten", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ originalUrl: url })
+    });
+
+    document.getElementById("urlInput").value = "";
+    loadUrls();
+}
+
+async function loadUrls() {
+    const res = await fetch("/api/urls");
+    const urls = await res.json();
+
+    let html = "";
+
+    urls.forEach(u => {
+        const shortUrl = `${window.location.origin}/${u.shortCode}`;
+
+html += `
+    <div class="card">
+        <p><b>Original:</b> ${u.originalUrl}</p>
+        <p><b>Short:</b> 
+            <a href="${shortUrl}" target="_blank">${shortUrl}</a>
+        </p>
+        <p><b>Clicks:</b> ${u.clicks}</p>
+
+        <div class="actions">
+            <button onclick="copy('${shortUrl}')">Copy</button>
+            <button class="delete" onclick="deleteUrl('${u._id}')">Delete</button>
+        </div>
+    </div>
+`;
+    });
+
+    document.getElementById("result").innerHTML = html;
+}
+document.getElementById("urlInput").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+        shorten();
+    }
+});
+/* Copy with toast */
+function copy(text) {
+    navigator.clipboard.writeText(text);
+    showToast("Copied to clipboard!");
+}
+
+/* Delete */
+async function deleteUrl(id) {
+    await fetch(`/api/delete/${id}`, { method: "DELETE" });
+    showToast("Deleted!");
+    loadUrls();
+}
+
+/* Toast */
+function showToast(message) {
+    const toast = document.getElementById("toast");
+    toast.innerText = message;
+    toast.classList.add("show");
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+    }, 2000);
+}
+
+/* Load on start */
+loadUrls();
+</script>
+
+</body>
+</html>
