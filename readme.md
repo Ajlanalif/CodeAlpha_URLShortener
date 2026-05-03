@@ -102,8 +102,7 @@ PORT=5000
 
 ## 👨‍💻 Author
 
-Sayed Ajlan  
+Sayed Ajlan Al Alif 
 CSE, Comilla University  
 
-GitHub: https://github.com/Ajlanalif
 
